@@ -22,8 +22,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_SUPABASE_URL=https://sbhleqplgtoabcuybllt.supabase.co
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_cCRuE-m2ycdwAqDYX4Az4A_Oo0y5haY
 ARG NEXT_PUBLIC_SITE_URL
 ARG NEXT_PUBLIC_APP_LOCALE=en
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
@@ -41,7 +41,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
-    PORT=3000 \
+    PORT=8080 \
     HOSTNAME=0.0.0.0
 
 RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
@@ -51,5 +51,6 @@ COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
 USER nextjs
+EXPOSE 8080
 EXPOSE 3000
 CMD ["node", "server.js"]

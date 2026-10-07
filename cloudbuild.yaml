@@ -1,0 +1,67 @@
+# Google Cloud Build configuration for WACRM
+# ============================================================
+# This file automates building and deploying WACRM to Google Cloud Run
+# Trigger: Automated on git push to main branch via Cloud Build trigger
+# ============================================================
+steps:
+  # 1. Build container image using Dockerfile
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/wacrm/wacrm:$COMMIT_SHA'
+      - '-t'
+      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/wacrm/wacrm:latest'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_SUPABASE_URL=$_NEXT_PUBLIC_SUPABASE_URL'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_SUPABASE_ANON_KEY=$_NEXT_PUBLIC_SUPABASE_ANON_KEY'
+      - '.'
+
+  # 2. Push image to Google Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/wacrm/wacrm:$COMMIT_SHA'
+
+  # 3. Deploy container image to Google Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'wacrm'
+      - '--image'
+      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/wacrm/wacrm:$COMMIT_SHA'
+      - '--region'
+      - 'asia-south1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
+      - '--memory'
+      - '1Gi'
+      - '--cpu'
+      - '1'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '5'
+      - '--set-env-vars'
+      - 'NEXT_PUBLIC_SUPABASE_URL=$_NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY=$_NEXT_PUBLIC_SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY=$_SUPABASE_SERVICE_ROLE_KEY,ENCRYPTION_KEY=$_ENCRYPTION_KEY,META_APP_SECRET=$_META_APP_SECRET,META_APP_ID=$_META_APP_ID'
+
+substitutions:
+  _NEXT_PUBLIC_SUPABASE_URL: 'https://sbhleqplgtoabcuybllt.supabase.co'
+  _NEXT_PUBLIC_SUPABASE_ANON_KEY: 'sb_publishable_cCRuE-m2ycdwAqDYX4Az4A_Oo0y5haY'
+  _SUPABASE_SERVICE_ROLE_KEY: ''
+  _ENCRYPTION_KEY: ''
+  _META_APP_SECRET: ''
+  _META_APP_ID: ''
+
+images:
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/wacrm/wacrm:$COMMIT_SHA'
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/wacrm/wacrm:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
