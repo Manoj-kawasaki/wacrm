@@ -41,7 +41,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
-    PORT=8080 \
+    PORT=3000 \
     HOSTNAME=0.0.0.0
 
 RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
@@ -51,6 +51,5 @@ COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nextjs /app/public ./public
 
 USER nextjs
-EXPOSE 8080
 EXPOSE 3000
 CMD ["node", "server.js"]
