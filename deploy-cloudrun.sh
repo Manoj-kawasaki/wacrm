@@ -27,10 +27,18 @@ PROJECT_ID=${1:-$(gcloud config get-value project 2>/dev/null)}
 REGION=${2:-"asia-south1"}
 SERVICE_NAME="wacrm"
 
+# Resolve exact Project ID if project name or partial name was provided
+if [ -n "$PROJECT_ID" ] && [ "$PROJECT_ID" != "(unset)" ]; then
+  RESOLVED_ID=$(gcloud projects list --filter="NAME='$PROJECT_ID' OR PROJECT_ID='$PROJECT_ID'" --format="value(PROJECT_ID)" 2>/dev/null | head -n 1 || true)
+  if [ -n "$RESOLVED_ID" ]; then
+    PROJECT_ID="$RESOLVED_ID"
+  fi
+fi
+
 if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "(unset)" ]; then
   echo "❌ Error: Google Cloud Project ID is not set."
   echo "Usage: ./deploy-cloudrun.sh <GCP_PROJECT_ID> [REGION]"
-  echo "Example: ./deploy-cloudrun.sh cloudzap-wacrm asia-south1"
+  echo "Example: ./deploy-cloudrun.sh cloudzap-wacrm-510805 asia-south1"
   exit 1
 fi
 
@@ -52,7 +60,12 @@ gcloud config set project "$PROJECT_ID" --quiet
 
 # 3. Enable required Google Cloud APIs
 echo "⚙️ Enabling Cloud Run, Cloud Build, and Artifact Registry APIs..."
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project="$PROJECT_ID"
+if ! gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com --project="$PROJECT_ID"; then
+  echo ""
+  echo "❌ Failed to enable Cloud Run APIs. Google Cloud requires billing to be enabled on '$PROJECT_ID'."
+  echo "👉 Link an active billing account here: https://console.cloud.google.com/billing/linkedaccount?project=$PROJECT_ID"
+  exit 1
+fi
 
 # 4. Prepare environment variables
 ENV_FILE=".env.local"
